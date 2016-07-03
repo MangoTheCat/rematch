@@ -73,8 +73,9 @@ re_match <- function(pattern, text, ...) {
     )
   }
 
-  colnames(res) <- c(".match", attr(match, "capture.names"))
-  res
+  colnames(res) <- c(".match", auto_name(match))
+
+  tibble::as_data_frame(res)
 }
 
 #' Extract all matches of a regular expression
@@ -97,47 +98,54 @@ re_match <- function(pattern, text, ...) {
 
 re_match_all <- function(pattern, text, ...) {
 
-  stopifnot(is.character(pattern), length(pattern) == 1, !is.na(pattern))
+  stopifnot(is.character(pattern), length(pattern) == 1, !is.na(pattern), length(text) > 0)
   text <- as.character(text)
 
   match <- gregexpr(pattern, text, perl = TRUE, ...)
 
-  mapply(re_match_all1, match, text, SIMPLIFY = FALSE)
+  for (i in seq_along(match)) {
+    match_len <- attr(match[[i]], "match.length")
+    capt_start <- attr(match[[i]], "capture.start")
+    capt_len <- attr(match[[i]], "capture.length")
+    capt_nms <- attr(match[[i]], "capture.names")
+
+    # Setup columns if the first match
+    if (i == 1) {
+      if (is.null(capt_start)) {
+        res <- list(list())
+      } else {
+        res <- rep(list(list()), length = ncol(capt_start) + 1L)
+      }
+      names(res) <- c(".match", auto_name(match[[i]]))
+    }
+
+    # Add match results
+    m <- as.vector(match[[i]])
+    if (m[[1L]] == -1) {
+      res[[1L]][[i]] <- NA_character_
+    } else {
+      res[[1L]][[i]] <- substring(text[[i]], m, m + match_len - 1)
+    }
+
+    # Add captures
+    if (!is.null(capt_start)) {
+      capt_str <- substring(text[[i]], capt_start, capt_start + capt_len - 1)
+      for (j in seq_len(NCOL(capt_start))) {
+        res[[j + 1L]][[i]] <- capt_str[seq(j, length(capt_str), NCOL(capt_start))]
+      }
+    }
+  }
+
+  tibble::as_data_frame(res)
 }
 
-re_match_all1 <- function(match, text) {
-
-  match_len <- attr(match, "match.length")
-  capt_start <- attr(match, "capture.start")
-  capt_len <- attr(match, "capture.length")
-  capt_names <- attr(match, "capture.names")
-  match <- as.vector(match)
-
-  if (identical(match, -1L)) {
-    return(matrix(
-      character(),
-      nrow = 0,
-      ncol = length(capt_names) + 1,
-      dimnames = list(character(), c(".match", capt_names))
-    ))
+auto_name <- function(x) {
+  nms <- attr(x, "capture.names")
+  if (is.null(nms)) {
+    paste0("V", length(match))
+  } else {
+    empty <- nzchar(nms)
+    nms[!empty] <- paste0("V", which(!empty))
   }
-
-  res <- cbind(as.character(substring(text, match, match + match_len - 1)))
-
-  if (!is.null(capt_start)) {
-    res <- cbind(
-      res,
-      rbind(vapply(
-        seq_len(NCOL(capt_start)),
-        function(i) {
-          substring(text, capt_start[,i], capt_start[,i] + capt_len[,i] - 1)
-        },
-        character(length(match))
-      ))
-    )
-  }
-
-  colnames(res) <- c(".match", capt_names)
-
-  res
+  nms
 }
