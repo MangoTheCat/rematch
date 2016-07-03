@@ -11,6 +11,7 @@ LazyData: true
 URL: https://github.com/MangoTheCat/rematch
 BugReports: https://github.com/MangoTheCat/rematch/issues
 RoxygenNote: 5.0.1.9000
+Imports: tibble
 Suggests: 
     covr,
     testthat

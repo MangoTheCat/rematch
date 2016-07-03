@@ -104,3 +104,22 @@ out
 ## License
 
 MIT © Mango Solutions
+
+
+f <- function(x) {
+  switch(x,
+      a = {  1 },
+      b = 2,
+      c = d <- 1)
+}
+trace_calls(f)
+
+DataFrame(a=I(c(list(c(1:100)))))
+data_frame(a=c(list(c(1:100))))
+fit <- lm(cyl~disp, data = mtcars)
+DataFrame(a=I(c(list(c(1:100)), list(fit))))
+as_data_frame(mtcars)
+mt <- mtcars
+rownames(mt) <- NULL
+as(mt, "DataFrame")
+

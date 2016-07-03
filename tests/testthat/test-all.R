@@ -4,31 +4,24 @@ context("re_match_all")
 test_that("corner cases", {
 
   res <- re_match_all("", c("foo", "bar"))
-  expect_equal(
+  expect_identical(
     res,
-    list(
-      cbind(.match = c("", "", "")),
-      cbind(.match = c("", "", ""))
-    )
+    tibble::data_frame(.match = c(list(c("", "", "")), list(c("", "", ""))))
   )
 
   res <- re_match_all("", c("", "bar"))
-  expect_equal(
+  expect_identical(
     res,
-    list(
-      cbind(.match = ""),
-      cbind(.match = c("", "", ""))
-    )
+    tibble::data_frame(
+      .match = c(list(""), list(c("", "", ""))))
   )
 
-  res <- re_match_all("", character())
-  expect_equal(res, list())
+  expect_error(re_match_all("", character()))
 
-  res <- re_match_all("foo", character())
-  expect_equal(res, list())
+  expect_error(re_match_all("foo", character()))
 
   res <- re_match_all("foo", "not")
-  expect_equal(res, list(cbind(.match = character())))
+  expect_identical(res, tibble::data_frame(.match = list(NA_character_)))
 })
 
 
@@ -37,30 +30,33 @@ test_that("capture groups", {
   pattern <- "([0-9]+)"
 
   res <- re_match_all(pattern, c("123xxxx456", "", "xxx", "1", "123"))
-  expect_equal(
+  expect_identical(
     res,
-    list(
-      cbind(.match = c("123", "456"), c("123", "456")),
-      cbind(.match = character(), character()),
-      cbind(.match = character(), character()),
-      cbind(.match = "1", "1"),
-      cbind(.match = "123", "123")
-    )
+    tibble::data_frame(
+      .match = c(
+          list(c("123", "456")),
+            list(NA_character_),
+            list(NA_character_),
+            list("1"),
+            list("123")),
+      V1 = c(
+          list(c("123", "456")),
+            list(""),
+            list(""),
+            list("1"),
+            list("123")))
   )
 
 })
 
 
-test_that("scalar text with capure groups", {
+test_that("scalar text with capture groups", {
 
   res <- re_match_all("\\b(\\w+)\\b", "foo bar")
-  expect_equal(res, list(cbind(.match = c("foo", "bar"), c("foo", "bar"))))
+  expect_identical(res,
+    tibble::data_frame(.match = list(c("foo", "bar")), V1 = list(c("foo", "bar"))))
 
   res <- re_match_all("\\b(?<word>\\w+)\\b", "foo bar")
-  expect_equal(
-    res,
-    list(
-      cbind(.match = c("foo", "bar"), word = c("foo", "bar"))
-    )
-  )
+  expect_identical(res,
+    tibble::data_frame(.match = list(c("foo", "bar")), word = list(c("foo", "bar"))))
 })
